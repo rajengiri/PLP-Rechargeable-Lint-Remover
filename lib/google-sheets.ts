@@ -76,7 +76,7 @@ export async function saveOrderToSheet(order: OrderRecord) {
     throw new Error("Could not create or locate the Google Sheets order tab.");
   }
 
-  const currentTabColor = sheet.properties?.tabColorStyle?.rgbColor;
+  const currentTabColor = sheet?.properties?.tabColorStyle?.rgbColor;
   const colorsMatch = (current: number | null | undefined, target: number) =>
     current !== null && current !== undefined && Math.abs(current - target) < 0.000001;
   const tabColorMatches =
