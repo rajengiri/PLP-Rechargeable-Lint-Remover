@@ -21,13 +21,34 @@ function formatKathmanduTime(date: Date) {
   }).format(date);
 }
 
+function normalizeOrigin(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+
+  try {
+    return new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`).origin;
+  } catch {
+    return null;
+  }
+}
+
 function originIsAllowed(request: NextRequest) {
-  const allowed = (process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_SITE_URL || "")
-    .trim()
-    .replace(/\/$/, "");
-  if (!allowed) return true;
-  const origin = request.headers.get("origin");
-  return !origin || origin.replace(/\/$/, "") === allowed;
+  const requestOrigin = normalizeOrigin(request.headers.get("origin"));
+  if (!requestOrigin) return true;
+
+  const allowedOrigins = new Set(
+    [
+      process.env.FRONTEND_URL,
+      process.env.NEXT_PUBLIC_SITE_URL,
+      process.env.VERCEL_URL,
+      process.env.VERCEL_BRANCH_URL,
+      process.env.VERCEL_PROJECT_PRODUCTION_URL,
+    ]
+      .map(normalizeOrigin)
+      .filter((origin): origin is string => Boolean(origin))
+  );
+
+  return allowedOrigins.size === 0 || allowedOrigins.has(requestOrigin);
 }
 
 export async function POST(request: NextRequest) {
