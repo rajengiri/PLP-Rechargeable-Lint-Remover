@@ -8,6 +8,9 @@ import { PRODUCT, calculateTotal, getDeliveryFee } from "@/lib/product";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const PROJECT_DEPLOYMENT_HOST =
+  /^plp-rechargeable-lint-remover-[a-z0-9]{6,32}-rajendigitalmkt-2291\.vercel\.app$/i;
+
 function makeOrderId() {
   const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
   return "GANESH-" + date + "-" + randomUUID().slice(0, 6).toUpperCase();
@@ -32,6 +35,15 @@ function normalizeOrigin(value: string | null | undefined) {
   }
 }
 
+function isTrustedProjectDeployment(origin: string) {
+  try {
+    const url = new URL(origin);
+    return url.protocol === "https:" && PROJECT_DEPLOYMENT_HOST.test(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
 function originIsAllowed(request: NextRequest) {
   const requestOrigin = normalizeOrigin(request.headers.get("origin"));
   if (!requestOrigin) return true;
@@ -48,7 +60,10 @@ function originIsAllowed(request: NextRequest) {
       .filter((origin): origin is string => Boolean(origin))
   );
 
-  return allowedOrigins.size === 0 || allowedOrigins.has(requestOrigin);
+  return (
+    allowedOrigins.has(requestOrigin) ||
+    isTrustedProjectDeployment(requestOrigin)
+  );
 }
 
 export async function POST(request: NextRequest) {
